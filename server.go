@@ -294,7 +294,8 @@ ReadLoop:
 				conn.WriteSMTP(501, "Cancelled")
 				continue
 			default:
-				conn.WriteSMTP(250, fmt.Sprintf("AUTH %v", s.Auth.EHLO()))
+				// conn.WriteSMTP(250, fmt.Sprintf("AUTH %v", s.Auth.EHLO()))
+				conn.WriteSMTP(530, "Authentication required")
 				continue
 			}
 		}
