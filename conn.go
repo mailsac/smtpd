@@ -114,7 +114,7 @@ func (c *Conn) WriteSMTP(code int, message string) error {
 	c.SetWriteDeadline(time.Now().Add(c.WriteTimeout))
 	msg := fmt.Sprintf("%v %v", code, message) + "\r\n"
 	_, err := c.Write([]byte(msg))
-	c.Logger.Print("SERVR: ", msg)
+	c.Logger.Print("SERVER: ", msg)
 	return err
 }
 
@@ -123,7 +123,7 @@ func (c *Conn) WriteEHLO(message string) error {
 	c.SetWriteDeadline(time.Now().Add(c.WriteTimeout))
 	msg := fmt.Sprintf("250-%v", message) + "\r\n"
 	_, err := c.Write([]byte(msg))
-	c.Logger.Print("SERVR: ", msg)
+	c.Logger.Print("SERVER: ", msg)
 	return err
 }
 
@@ -131,6 +131,6 @@ const OK string = "OK"
 
 // WriteOK is a convenience function for sending the default OK response
 func (c *Conn) WriteOK() error {
-	c.Logger.Println("SERVR: ", 250, OK)
+	c.Logger.Println("SERVER: ", 250, OK)
 	return c.WriteSMTP(250, OK)
 }
