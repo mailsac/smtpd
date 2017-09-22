@@ -219,6 +219,8 @@ func (s *Server) ListenAndServe(addr string) error {
 			MaxSize:      s.MaxSize,
 			ReadTimeout:  s.ReadTimeout,
 			WriteTimeout: s.WriteTimeout,
+
+			Logger: s.Logger,
 		}
 
 		c.SetReadDeadline(time.Now().Add(s.ReadTimeout))
@@ -268,11 +270,12 @@ ReadLoop:
 		}
 
 		if s.Verbose {
-			s.Logger.Printf("%v %v", verb, args)
+			s.Logger.Printf("CLIENT: %v %v", verb, args)
 		}
 
 		// Always check for disabled features first
 		if s.Disabled[verb] {
+			s.Logger.Printf("Command Disabled %v", verb)
 			if verb == "EHLO" {
 				conn.WriteSMTP(550, "Not implemented")
 			} else {
@@ -290,7 +293,7 @@ ReadLoop:
 				conn.WriteSMTP(501, "Cancelled")
 				continue
 			default:
-				conn.WriteSMTP(530, "Authentication required")
+				conn.WriteSMTP(530, fmt.Sprintf("AUTH %v", s.Auth.EHLO()))
 				continue
 			}
 		}
@@ -435,7 +438,10 @@ ReadLoop:
 					MaxSize:      conn.MaxSize,
 					ReadTimeout:  s.ReadTimeout,
 					WriteTimeout: s.WriteTimeout,
+
+					Logger: s.Logger,
 				}
+				s.Logger.Printf("Upgraded TLS")
 			} else {
 				s.Logger.Printf("Could not TLS handshake:%v", err)
 				break ReadLoop

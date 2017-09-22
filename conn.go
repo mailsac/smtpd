@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/mail"
 	"net/textproto"
@@ -36,6 +37,8 @@ type Conn struct {
 
 	asTextProto sync.Once
 	textProto   *textproto.Conn
+
+	Logger *log.Logger
 }
 
 // tp returns a textproto wrapper for this connection
@@ -109,18 +112,25 @@ func (c *Conn) ReadData() (string, error) {
 // WriteSMTP writes a general SMTP line
 func (c *Conn) WriteSMTP(code int, message string) error {
 	c.SetWriteDeadline(time.Now().Add(c.WriteTimeout))
-	_, err := c.Write([]byte(fmt.Sprintf("%v %v", code, message) + "\r\n"))
+	msg := fmt.Sprintf("%v %v", code, message) + "\r\n"
+	_, err := c.Write([]byte(msg))
+	c.Logger.Print("SERVR: ", msg)
 	return err
 }
 
 // WriteEHLO writes an EHLO line, see https://tools.ietf.org/html/rfc2821#section-4.1.1.1
 func (c *Conn) WriteEHLO(message string) error {
 	c.SetWriteDeadline(time.Now().Add(c.WriteTimeout))
-	_, err := c.Write([]byte(fmt.Sprintf("250-%v", message) + "\r\n"))
+	msg := fmt.Sprintf("250-%v", message) + "\r\n"
+	_, err := c.Write([]byte(msg))
+	c.Logger.Print("SERVR: ", msg)
 	return err
 }
 
+const OK string = "OK"
+
 // WriteOK is a convenience function for sending the default OK response
 func (c *Conn) WriteOK() error {
-	return c.WriteSMTP(250, "OK")
+	c.Logger.Println("SERVR: ", 250, OK)
+	return c.WriteSMTP(250, OK)
 }
