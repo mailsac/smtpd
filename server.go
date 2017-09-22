@@ -212,6 +212,7 @@ func (s *Server) ListenAndServe(addr string) error {
 		}
 
 		c := &Conn{
+			ID:   randStringBytesMaskImprSrc(),
 			Conn: conn,
 			// TODO: implement ListenAndServeSSL for :465 servers
 			IsTLS:        false,
@@ -270,7 +271,7 @@ ReadLoop:
 		}
 
 		if s.Verbose {
-			s.Logger.Printf("CLIENT: %v %v", verb, args)
+			s.Logger.Printf("%v CLIENT: %v %v", conn.ID, verb, args)
 		}
 
 		// Always check for disabled features first
@@ -293,7 +294,7 @@ ReadLoop:
 				conn.WriteSMTP(501, "Cancelled")
 				continue
 			default:
-				conn.WriteSMTP(530, fmt.Sprintf("AUTH %v", s.Auth.EHLO()))
+				conn.WriteSMTP(250, fmt.Sprintf("AUTH %v", s.Auth.EHLO()))
 				continue
 			}
 		}
@@ -430,7 +431,10 @@ ReadLoop:
 
 			tlsConn.SetDeadline(time.Now().Add(s.WriteTimeout))
 			if err := tlsConn.Handshake(); err == nil {
+				newID := randStringBytesMaskImprSrc()
+				s.Logger.Printf("Upgraded TLS %v to %v", conn.ID, newID)
 				conn = &Conn{
+					ID:           newID,
 					Conn:         tlsConn,
 					IsTLS:        true,
 					User:         conn.User,
@@ -441,7 +445,6 @@ ReadLoop:
 
 					Logger: s.Logger,
 				}
-				s.Logger.Printf("Upgraded TLS")
 			} else {
 				s.Logger.Printf("Could not TLS handshake:%v", err)
 				break ReadLoop

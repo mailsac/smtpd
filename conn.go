@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"net/mail"
 	"net/textproto"
@@ -16,6 +17,8 @@ import (
 // Conn is a wrapper for net.Conn that provides
 // convenience handlers for SMTP requests
 type Conn struct {
+	// ID is this connection ID which changes after TLS connection
+	ID string
 	// Conn is primarily a wrapper around a net.Conn object
 	net.Conn
 
@@ -114,7 +117,7 @@ func (c *Conn) WriteSMTP(code int, message string) error {
 	c.SetWriteDeadline(time.Now().Add(c.WriteTimeout))
 	msg := fmt.Sprintf("%v %v", code, message) + "\r\n"
 	_, err := c.Write([]byte(msg))
-	c.Logger.Print("SERVER: ", msg)
+	c.Logger.Print(c.ID, " SERVER: ", msg)
 	return err
 }
 
@@ -123,7 +126,7 @@ func (c *Conn) WriteEHLO(message string) error {
 	c.SetWriteDeadline(time.Now().Add(c.WriteTimeout))
 	msg := fmt.Sprintf("250-%v", message) + "\r\n"
 	_, err := c.Write([]byte(msg))
-	c.Logger.Print("SERVER: ", msg)
+	c.Logger.Print(c.ID, " SERVER: ", msg)
 	return err
 }
 
@@ -131,6 +134,29 @@ const OK string = "OK"
 
 // WriteOK is a convenience function for sending the default OK response
 func (c *Conn) WriteOK() error {
-	c.Logger.Println("SERVER: ", 250, OK)
+	c.Logger.Println(c.ID, " SERVER: ", 250, OK)
 	return c.WriteSMTP(250, OK)
+}
+
+// https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-golang
+var randSrc = rand.NewSource(time.Now().UnixNano())
+
+const idLen = 8
+
+func randStringBytesMaskImprSrc() string {
+	b := make([]byte, idLen)
+	// A randSrc.Int63() generates 63 random bits, enough for letterIdxMax characters!
+	for i, cache, remain := idLen-1, randSrc.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = randSrc.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
+	}
+
+	return string(b)
 }
