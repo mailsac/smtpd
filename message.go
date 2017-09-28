@@ -56,9 +56,6 @@ type Part struct {
 // algorithm from https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-golang
 func (m *Message) ID() string {
 	m.genMessageID.Do(func() {
-		if m.MessageID = m.Header.Get("Message-ID"); m.MessageID != "" {
-			return
-		}
 		var src = rand.NewSource(time.Now().UnixNano())
 
 		b := make([]byte, idEntropy)
