@@ -38,7 +38,7 @@ type Message struct {
 
 	MessageID    string
 	genMessageID sync.Once
-	rcpt         []*mail.Address
+	Rcpt         []*mail.Address
 
 	// meta info
 	Logger *log.Logger
@@ -86,7 +86,7 @@ func (m *Message) BCC() []*mail.Address {
 	}
 
 	var bcc []*mail.Address
-	for _, recipient := range m.rcpt {
+	for _, recipient := range m.Rcpt {
 		if _, ok := inHeaders[recipient.Address]; !ok {
 			bcc = append(bcc, recipient)
 		}
@@ -305,7 +305,7 @@ func NewMessage(data []byte, rcpt []*mail.Address, logger *log.Logger) (*Message
 	}
 
 	return &Message{
-		rcpt:    rcpt,
+		Rcpt:    rcpt,
 		To:      to,
 		From:    from[0],
 		Header:  m.Header,
