@@ -29,6 +29,8 @@ const (
 // Message is a nicely packaged representation of the
 // recieved message
 type Message struct {
+	Conn *Conn
+
 	To      []*mail.Address
 	From    *mail.Address
 	Header  mail.Header
@@ -274,7 +276,7 @@ func (m *Message) Parts() ([]*Part, error) {
 }
 
 // NewMessage creates a Message from a data blob and a recipients list
-func NewMessage(data []byte, rcpt []*mail.Address, logger *log.Logger) (*Message, error) {
+func NewMessage(conn *Conn, data []byte, rcpt []*mail.Address, logger *log.Logger) (*Message, error) {
 	m, err := mail.ReadMessage(bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
@@ -305,6 +307,7 @@ func NewMessage(data []byte, rcpt []*mail.Address, logger *log.Logger) (*Message
 	}
 
 	return &Message{
+		Conn:    conn,
 		Rcpt:    rcpt,
 		To:      to,
 		From:    from[0],

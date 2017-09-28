@@ -115,7 +115,7 @@ Content-Transfer-Encoding: quoted-printable
 )
 
 func TestPlainHTMLParsing(t *testing.T) {
-	msg, err := smtpd.NewMessage([]byte(plainHTMLEmail), nil, nil)
+	msg, err := smtpd.NewMessage(nil, []byte(plainHTMLEmail), nil, nil)
 
 	if err != nil {
 		t.Error("error creating message", err)
@@ -166,7 +166,7 @@ func TestPlainHTMLParsing(t *testing.T) {
 }
 
 func TestAlternativeMessageParsing(t *testing.T) {
-	msg, err := smtpd.NewMessage([]byte(alternativeEmail), nil, nil)
+	msg, err := smtpd.NewMessage(nil, []byte(alternativeEmail), nil, nil)
 
 	if err != nil {
 		t.Error("error creating message", err)
@@ -224,7 +224,7 @@ func TestAlternativeMessageParsing(t *testing.T) {
 
 func TestMixedMessageParsing(t *testing.T) {
 
-	msg, err := smtpd.NewMessage([]byte(emailWithAttachment), nil, nil)
+	msg, err := smtpd.NewMessage(nil, []byte(emailWithAttachment), nil, nil)
 
 	if err != nil {
 		t.Error("error creating message", err)
@@ -321,7 +321,7 @@ END:VCALENDAR`
 
 func TestInvalidEmailBodyStillPassesToHandler(t *testing.T) {
 
-	msg, err := smtpd.NewMessage([]byte(emailWithInvalidBody), nil, nil)
+	msg, err := smtpd.NewMessage(nil, []byte(emailWithInvalidBody), nil, nil)
 
 	if err != nil {
 		t.Error("error creating message", err)
