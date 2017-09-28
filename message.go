@@ -36,7 +36,7 @@ type Message struct {
 	RawBody []byte
 	Source  []byte
 
-	messageID    string
+	MessageID    string
 	genMessageID sync.Once
 	rcpt         []*mail.Address
 
@@ -56,7 +56,7 @@ type Part struct {
 // algorithm from https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-golang
 func (m *Message) ID() string {
 	m.genMessageID.Do(func() {
-		if m.messageID = m.Header.Get("Message-ID"); m.messageID != "" {
+		if m.MessageID = m.Header.Get("Message-ID"); m.MessageID != "" {
 			return
 		}
 		var src = rand.NewSource(time.Now().UnixNano())
@@ -75,9 +75,9 @@ func (m *Message) ID() string {
 			remain--
 		}
 
-		m.messageID = string(b)
+		m.MessageID = string(b)
 	})
-	return m.messageID
+	return m.MessageID
 }
 
 // BCC returns a list of addresses this message should be
