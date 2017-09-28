@@ -19,6 +19,8 @@ import (
 type Conn struct {
 	// ID is this connection ID which changes after TLS connection
 	ID string
+	// optional hostname given during NAME
+	ClientHostname string
 	// Conn is primarily a wrapper around a net.Conn object
 	net.Conn
 

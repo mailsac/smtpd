@@ -329,6 +329,8 @@ ReadLoop:
 				conn.WriteEHLO(fmt.Sprintf("%v %v", verb, extension.EHLO()))
 			}
 			conn.WriteSMTP(250, "HELP")
+		case "NAME":
+			conn.ClientHostname = strings.ToLower(args)
 		// The MAIL command starts off a new mail transaction
 		// see: https://tools.ietf.org/html/rfc2821#section-4.1.1.2
 		// This doesn't implement the RFC4594 addition of an AUTH param to the MAIL command
