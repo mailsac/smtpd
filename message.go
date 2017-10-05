@@ -15,7 +15,6 @@ import (
 	"net/textproto"
 	"strings"
 	"sync"
-	"time"
 )
 
 const idEntropy = 64
@@ -54,29 +53,23 @@ type Part struct {
 	Children []*Part
 }
 
-// ID returns an identifier for this message, or generates one if none available using the masked string
-// algorithm from https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-golang
 func (m *Message) ID() string {
 	m.genMessageID.Do(func() {
-		var src = rand.NewSource(time.Now().UnixNano())
-
-		b := make([]byte, idEntropy)
-		// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
-		for i, cache, remain := idEntropy-1, src.Int63(), letterIdxMax; i >= 0; {
-			if remain == 0 {
-				cache, remain = src.Int63(), letterIdxMax
-			}
-			if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-				b[i] = letterBytes[idx]
-				i--
-			}
-			cache >>= letterIdxBits
-			remain--
-		}
-
-		m.MessageID = string(b)
+		m.MessageID = NewMessageID()
 	})
 	return m.MessageID
+}
+
+const _charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+// NewMessageID generates a message ID, but make sure to seed the random number
+// generator
+func NewMessageID() string {
+	b := make([]byte, 32)
+	for i := range b {
+		b[i] = _charset[rand.Intn(len(_charset))]
+	}
+	return string(b)
 }
 
 // BCC returns a list of addresses this message should be
