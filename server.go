@@ -17,6 +17,8 @@ import (
 // MessageHandler functions handle application of business logic to the inbound message
 type MessageHandler func(m *Message) error
 
+type RcptHandler func(addresses []*mail.Address, conn *Conn, messageID string) (err error)
+
 // Default values
 const (
 	DefaultReadTimeout        = time.Second * 10
@@ -46,6 +48,8 @@ type Server struct {
 	// RateLimiter gets called before proceeding through to message handling
 	// TODO: Implement
 	RateLimiter func(*Conn) bool
+
+	OnRcpt RcptHandler
 
 	// Handler is the handoff function for messages
 	Handler MessageHandler
@@ -360,24 +364,37 @@ ReadLoop:
 			}
 		// https://tools.ietf.org/html/rfc2821#section-4.1.1.4
 		case "DATA":
-			conn.WriteSMTP(354, "Enter message, ending with \".\" on a line by itself")
+			passedRCPT := true
+			messageID := NewMessageID()
+			// should have had RCPT by now, multiple may be here
+			if len(conn.ToAddr) > 0 && s.OnRcpt != nil {
+				err := s.OnRcpt(conn.ToAddr, conn, messageID)
+				if err != nil {
+					passedRCPT = false
+					conn.WriteSMTP(554, fmt.Sprintf("Error: %v", err))
+				}
+			}
 
-			if data, err := conn.ReadData(); err == nil {
-				if message, err := NewMessage(conn, []byte(data), conn.ToAddr, s.Logger); err == nil && (conn.EndTX() == nil) {
-					if err := s.handleMessage(message); err == nil {
-						conn.WriteSMTP(250, fmt.Sprintf("OK : queued as %v", message.ID()))
-					} else if serr, ok := err.(SMTPError); ok {
-						conn.WriteSMTP(serr.Code, serr.Error())
+			if passedRCPT {
+				conn.WriteSMTP(354, "Enter message, ending with \".\" on a line by itself")
+				if data, err := conn.ReadData(); err == nil {
+					if message, err := NewMessage(conn, []byte(data), conn.ToAddr, s.Logger); err == nil && (conn.EndTX() == nil) {
+						message.MessageID = messageID
+						if err := s.handleMessage(message); err == nil {
+							conn.WriteSMTP(250, fmt.Sprintf("OK : queued as %v", message.MessageID))
+						} else if serr, ok := err.(SMTPError); ok {
+							conn.WriteSMTP(serr.Code, serr.Error())
+						} else {
+							conn.WriteSMTP(554, fmt.Sprintf("Error: internal - %v", err))
+						}
+
 					} else {
-						conn.WriteSMTP(554, fmt.Sprintf("Error: I blame me. %v", err))
+						conn.WriteSMTP(554, fmt.Sprintf("Error: %v", err))
 					}
 
 				} else {
-					conn.WriteSMTP(554, fmt.Sprintf("Error: I blame you. %v", err))
+					s.Logger.Printf("DATA read error: %v", err)
 				}
-
-			} else {
-				s.Logger.Printf("DATA read error: %v", err)
 			}
 		// Reset the connection
 		// see: https://tools.ietf.org/html/rfc2821#section-4.1.1.5

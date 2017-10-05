@@ -14,7 +14,6 @@ import (
 	"net/mail"
 	"net/textproto"
 	"strings"
-	"sync"
 )
 
 const idEntropy = 64
@@ -37,9 +36,8 @@ type Message struct {
 	RawBody []byte
 	Source  []byte
 
-	MessageID    string
-	genMessageID sync.Once
-	Rcpt         []*mail.Address
+	MessageID string
+	Rcpt      []*mail.Address
 
 	// meta info
 	Logger *log.Logger
@@ -51,13 +49,6 @@ type Part struct {
 	part     *multipart.Part
 	Body     []byte
 	Children []*Part
-}
-
-func (m *Message) ID() string {
-	m.genMessageID.Do(func() {
-		m.MessageID = NewMessageID()
-	})
-	return m.MessageID
 }
 
 const _charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
