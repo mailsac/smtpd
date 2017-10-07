@@ -262,16 +262,16 @@ ReadLoop:
 		var err error
 
 		if verb, args, err = conn.ReadSMTP(); err != nil {
-			s.Logger.Println(conn.ID, "SERVER: Read error", err)
 			if err == io.EOF {
 				// client closed the connection already
 				break ReadLoop
 			}
 			if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+				s.Logger.Println(conn.ID, "Client timed out", neterr)
 				// too slow, timeout
 				break ReadLoop
 			}
-
+			s.Logger.Println(conn.ID, "Read error", err)
 			return err
 		}
 
