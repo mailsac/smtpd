@@ -16,7 +16,6 @@ import (
 	"strings"
 )
 
-const idEntropy = 64
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const (
 	letterIdxBits = 6                    // 6 bits to represent a letter index
@@ -24,8 +23,7 @@ const (
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
 
-// Message is a nicely packaged representation of the
-// recieved message
+// Message is a nicely packaged representation of the received message
 type Message struct {
 	Conn *Conn
 

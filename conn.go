@@ -30,6 +30,8 @@ type Conn struct {
 	User     AuthUser
 	FromAddr *mail.Address
 	ToAddr   []*mail.Address
+	// any additional text information here, like custom headers you will later prepend when passing along to another server
+	AdditionalHeaders string
 
 	// Configuration options
 	MaxSize      int64
@@ -44,6 +46,8 @@ type Conn struct {
 	textProto   *textproto.Conn
 
 	Logger *log.Logger
+
+	server *Server
 }
 
 // tp returns a textproto wrapper for this connection
@@ -119,7 +123,9 @@ func (c *Conn) WriteSMTP(code int, message string) error {
 	c.SetWriteDeadline(time.Now().Add(c.WriteTimeout))
 	msg := fmt.Sprintf("%v %v", code, message) + "\r\n"
 	_, err := c.Write([]byte(msg))
-	c.Logger.Print(c.ID, " SERVER: ", msg)
+	if c.server.Verbose {
+		c.Logger.Println(c.ID, " SERVER: ", msg)
+	}
 	return err
 }
 
@@ -128,7 +134,9 @@ func (c *Conn) WriteEHLO(message string) error {
 	c.SetWriteDeadline(time.Now().Add(c.WriteTimeout))
 	msg := fmt.Sprintf("250-%v", message) + "\r\n"
 	_, err := c.Write([]byte(msg))
-	c.Logger.Print(c.ID, " SERVER: ", msg)
+	if c.server.Verbose {
+		c.Logger.Println(c.ID, " SERVER: ", msg)
+	}
 	return err
 }
 
@@ -136,7 +144,9 @@ const OK string = "OK"
 
 // WriteOK is a convenience function for sending the default OK response
 func (c *Conn) WriteOK() error {
-	c.Logger.Println(c.ID, " SERVER: ", 250, OK)
+	if c.server.Verbose {
+		c.Logger.Println(c.ID, " SERVER: ", 250, OK)
+	}
 	return c.WriteSMTP(250, OK)
 }
 

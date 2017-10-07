@@ -85,7 +85,7 @@ type Server struct {
 
 // NewServer creates a server with the default settings
 func NewServer(handler func(*Message) error) *Server {
-	return NewServerWithLogger(handler, log.New(os.Stdout, "smtpd ", 0))
+	return NewServerWithLogger(handler, log.New(os.Stdout, "smtp ", log.LstdFlags))
 }
 
 // NewServerWithLogger creates a server with a customer logger
@@ -122,7 +122,7 @@ func (s *Server) Greeting(conn *Conn) string {
 // Extend the server to handle the supplied verb
 func (s *Server) Extend(verb string, extension Extension) error {
 	if _, ok := s.Extensions[verb]; ok {
-		return fmt.Errorf("Extension for %v has already been registered", verb)
+		return fmt.Errorf("extension for %v has already been registered", verb)
 	}
 
 	s.Extensions[verb] = extension
@@ -147,7 +147,7 @@ func (s *Server) Enable(verbs ...string) {
 func (s *Server) UseTLS(cert, key string) error {
 	c, err := tls.LoadX509KeyPair(cert, key)
 	if err != nil {
-		return fmt.Errorf("Could not load TLS keypair, %v", err)
+		return fmt.Errorf("could not load TLS keypair, %v", err)
 	}
 	s.TLSConfig = &tls.Config{
 		Certificates: []tls.Certificate{c},
@@ -226,6 +226,7 @@ func (s *Server) ListenAndServe(addr string) error {
 			WriteTimeout: s.WriteTimeout,
 
 			Logger: s.Logger,
+			server: s,
 		}
 
 		c.SetReadDeadline(time.Now().Add(s.ReadTimeout))
@@ -261,7 +262,7 @@ ReadLoop:
 		var err error
 
 		if verb, args, err = conn.ReadSMTP(); err != nil {
-			s.Logger.Printf("Read error: %v", err)
+			s.Logger.Println(conn.ID, "SERVER: Read error", err)
 			if err == io.EOF {
 				// client closed the connection already
 				break ReadLoop
@@ -280,7 +281,9 @@ ReadLoop:
 
 		// Always check for disabled features first
 		if s.Disabled[verb] {
-			s.Logger.Printf("Command Disabled %v", verb)
+			if s.Verbose {
+				s.Logger.Printf(conn.ID, "Command Disabled %v", verb)
+			}
 			if verb == "EHLO" {
 				conn.WriteSMTP(550, "Not implemented")
 			} else {
@@ -308,7 +311,7 @@ ReadLoop:
 		if _, ok := s.Extensions[verb]; ok {
 			err := s.Extensions[verb].Handle(conn, args)
 			if err != nil {
-				s.Logger.Printf("Error? %v", err)
+				s.Logger.Println(conn.ID, "Error handling extension", verb, err)
 			}
 			continue
 		}
@@ -393,7 +396,7 @@ ReadLoop:
 					}
 
 				} else {
-					s.Logger.Printf("DATA read error: %v", err)
+					s.Logger.Printf(conn.ID, "DATA read error: ", err)
 				}
 			}
 		// Reset the connection
@@ -445,7 +448,7 @@ ReadLoop:
 			// upgrade to TLS
 			tlsConn := tls.Server(conn, s.TLSConfig)
 			if tlsConn == nil {
-				s.Logger.Printf("Couldn't upgrade to TLS")
+				s.Logger.Println(conn.ID, "Error during TLS upgrade")
 				break ReadLoop
 			}
 
@@ -464,9 +467,10 @@ ReadLoop:
 					WriteTimeout: s.WriteTimeout,
 
 					Logger: s.Logger,
+					server: s,
 				}
 			} else {
-				s.Logger.Printf("Could not TLS handshake:%v", err)
+				s.Logger.Println(conn.ID, "Could not TLS handshake: ", err)
 				break ReadLoop
 			}
 
