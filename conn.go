@@ -94,7 +94,9 @@ func (c *Conn) Reset() {
 	c.FromAddr = nil
 	c.ToAddr = make([]*mail.Address, 0)
 	c.transaction = 0
-	c.Logger.Println(c.ID, "resetting connection")
+	if c.server.Verbose {
+		c.Logger.Println(c.ID, "SERVER: resetting connection")
+	}
 }
 
 // ReadSMTP pulls a single SMTP command line (ending in a carriage return + newline)
