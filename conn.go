@@ -44,10 +44,17 @@ type Conn struct {
 
 	asTextProto sync.Once
 	textProto   *textproto.Conn
+	onRcpt      bool
 
 	Logger *log.Logger
 
 	server *Server
+}
+
+// AddInfoHeader adds an additional header to the beginning of the list, such that the newest
+// headers will be at the top
+func (c *Conn) AddInfoHeader(headerName, headerText string) {
+	c.AdditionalHeaders = headerName + ": " + headerText + "\n" + c.AdditionalHeaders
 }
 
 // tp returns a textproto wrapper for this connection
@@ -81,10 +88,13 @@ func (c *Conn) EndTX() error {
 }
 
 func (c *Conn) Reset() {
+	c.onRcpt = false
+	c.AdditionalHeaders = ""
 	c.User = nil
 	c.FromAddr = nil
 	c.ToAddr = make([]*mail.Address, 0)
 	c.transaction = 0
+	c.Logger.Println(c.ID, "resetting connection")
 }
 
 // ReadSMTP pulls a single SMTP command line (ending in a carriage return + newline)

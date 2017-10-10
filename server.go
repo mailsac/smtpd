@@ -358,7 +358,6 @@ ReadLoop:
 			}
 		// https://tools.ietf.org/html/rfc2821#section-4.1.1.3
 		case "RCPT":
-			// TODO: bubble these up to the message,
 			if to, err := s.GetAddressArg("TO", args); err == nil {
 				conn.ToAddr = append(conn.ToAddr, to)
 				conn.WriteSMTP(250, "Accepted")
@@ -371,10 +370,16 @@ ReadLoop:
 			messageID := NewMessageID()
 			// should have had RCPT by now, multiple may be here
 			if len(conn.ToAddr) > 0 && s.OnRcpt != nil {
-				err := s.OnRcpt(conn.ToAddr, conn, messageID)
-				if err != nil {
-					passedRCPT = false
-					conn.WriteSMTP(554, fmt.Sprintf("Error: %v", err))
+				// prevent running OnRcpt again on this connection
+				if !conn.onRcpt {
+					conn.onRcpt = true
+					err := s.OnRcpt(conn.ToAddr, conn, messageID)
+					if err != nil {
+						passedRCPT = false
+						conn.WriteSMTP(554, fmt.Sprintf("Error: %v", err))
+					}
+				} else {
+					s.Logger.Println(conn.ID, "warn: skipping OnRcpt handler, already ran", conn.ToAddr)
 				}
 			}
 
@@ -396,7 +401,7 @@ ReadLoop:
 					}
 
 				} else {
-					s.Logger.Printf(conn.ID, "DATA read error: ", err)
+					s.Logger.Println(conn.ID, "DATA read error: ", err)
 				}
 			}
 		// Reset the connection
