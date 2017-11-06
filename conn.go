@@ -24,6 +24,8 @@ type Conn struct {
 	// Conn is primarily a wrapper around a net.Conn object
 	net.Conn
 
+	ForwardedForIP string
+
 	// Track some mutable for this connection
 	IsTLS    bool
 	Errors   []error
