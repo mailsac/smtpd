@@ -471,6 +471,7 @@ ReadLoop:
 					ReadTimeout:  s.ReadTimeout,
 					WriteTimeout: s.WriteTimeout,
 					AdditionalHeaders: conn.AdditionalHeaders,
+					ForwardedForIP: conn.ForwardedForIP,
 
 					Logger: s.Logger,
 					server: s,
