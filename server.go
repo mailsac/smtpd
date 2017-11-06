@@ -470,6 +470,7 @@ ReadLoop:
 					MaxSize:      conn.MaxSize,
 					ReadTimeout:  s.ReadTimeout,
 					WriteTimeout: s.WriteTimeout,
+					AdditionalHeaders: conn.AdditionalHeaders,
 
 					Logger: s.Logger,
 					server: s,
