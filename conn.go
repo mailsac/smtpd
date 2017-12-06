@@ -46,7 +46,6 @@ type Conn struct {
 
 	asTextProto sync.Once
 	textProto   *textproto.Conn
-	onRcpt      bool
 
 	Logger *log.Logger
 
@@ -90,15 +89,19 @@ func (c *Conn) EndTX() error {
 }
 
 func (c *Conn) Reset() {
-	c.onRcpt = false
-	c.AdditionalHeaders = ""
+	c.ResetBuffers()
 	c.User = nil
-	c.FromAddr = nil
-	c.ToAddr = make([]*mail.Address, 0)
-	c.transaction = 0
 	if c.server.Verbose {
 		c.Logger.Println(c.ID, "SERVER: resetting connection")
 	}
+}
+
+// ResetBuffers resets the mail buffers (to, from)
+func (c *Conn) ResetBuffers() {
+	c.FromAddr = nil
+	c.ToAddr = make([]*mail.Address, 0)
+	c.AdditionalHeaders = ""
+	c.transaction = 0
 }
 
 // ReadSMTP pulls a single SMTP command line (ending in a carriage return + newline)

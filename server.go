@@ -343,6 +343,8 @@ ReadLoop:
 		// This doesn't implement the RFC4594 addition of an AUTH param to the MAIL command
 		// see: http://tools.ietf.org/html/rfc4954#section-3 for details
 		case "MAIL":
+			// clear to/from but must not clear auth
+			conn.ResetBuffers()
 			if from, err := s.GetAddressArg("FROM", args); err == nil {
 				if conn.User == nil || conn.User.IsUser(from.Address) {
 					if err := conn.StartTX(from); err == nil {
@@ -368,18 +370,12 @@ ReadLoop:
 		case "DATA":
 			passedRCPT := true
 			messageID := NewMessageID()
-			// should have had RCPT by now, multiple may be here
+
 			if len(conn.ToAddr) > 0 && s.OnRcpt != nil {
-				// prevent running OnRcpt again on this connection
-				if !conn.onRcpt {
-					conn.onRcpt = true
-					err := s.OnRcpt(conn.ToAddr, conn, messageID)
-					if err != nil {
-						passedRCPT = false
-						conn.WriteSMTP(554, fmt.Sprintf("Error: %v", err))
-					}
-				} else {
-					s.Logger.Println(conn.ID, "warn: skipping OnRcpt handler, already ran", conn.ToAddr)
+				err := s.OnRcpt(conn.ToAddr, conn, messageID)
+				if err != nil {
+					passedRCPT = false
+					conn.WriteSMTP(554, fmt.Sprintf("Error: %v", err))
 				}
 			}
 
