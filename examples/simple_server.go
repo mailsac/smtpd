@@ -4,8 +4,6 @@ import (
     "fmt"
     "net/smtp"
     "log"
-
-    "github.com/mailproto/smtpd"
 )
 
 var helloWorld = `To: sender@example.org

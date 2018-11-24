@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/mailproto/smtpd"
+	"github.com/ruffrey/smtpd"
 )
 
 var tlsGen sync.Once
@@ -85,5 +85,5 @@ func (t *TestLogger) Println(v ...interface{}) {
 }
 
 func (t *TestLogger) Printf(format string, v ...interface{}) {
-	t.t.Logf(format, v)
+	t.t.Logf(format, v...)
 }

@@ -216,7 +216,7 @@ func (s *Server) ListenAndServe(addr string) error {
 		}
 
 		c := &Conn{
-			ID:   randStringBytesMaskImprSrc(),
+			ID:   NewMessageID(),
 			Conn: conn,
 			// TODO: implement ListenAndServeSSL for :465 servers
 			IsTLS:        false,
@@ -459,7 +459,7 @@ ReadLoop:
 
 			tlsConn.SetDeadline(time.Now().Add(s.WriteTimeout))
 			if err := tlsConn.Handshake(); err == nil {
-				newID := randStringBytesMaskImprSrc()
+				newID := NewMessageID()
 				s.Logger.Printf("Upgraded TLS %v to %v", conn.ID, newID)
 				conn = &Conn{
 					ID:           newID,

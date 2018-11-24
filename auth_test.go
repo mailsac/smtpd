@@ -6,7 +6,7 @@ import (
     "testing"
     "time"
 
-    "github.com/mailproto/smtpd"
+    "github.com/ruffrey/smtpd"
 )
 
 type TestUser struct {

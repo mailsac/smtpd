@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"net"
 	"net/mail"
 	"net/textproto"
@@ -162,27 +161,4 @@ func (c *Conn) WriteOK() error {
 		c.Logger.Println(c.ID, " SERVER: ", 250, OK)
 	}
 	return c.WriteSMTP(250, OK)
-}
-
-// https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-golang
-var randSrc = rand.NewSource(time.Now().UnixNano())
-
-const idLen = 8
-
-func randStringBytesMaskImprSrc() string {
-	b := make([]byte, idLen)
-	// A randSrc.Int63() generates 63 random bits, enough for letterIdxMax characters!
-	for i, cache, remain := idLen-1, randSrc.Int63(), letterIdxMax; i >= 0; {
-		if remain == 0 {
-			cache, remain = randSrc.Int63(), letterIdxMax
-		}
-		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-			b[i] = letterBytes[idx]
-			i--
-		}
-		cache >>= letterIdxBits
-		remain--
-	}
-
-	return string(b)
 }
