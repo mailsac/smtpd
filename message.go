@@ -52,6 +52,10 @@ var charIndexes = len(_charset) - 1
 var _counter = 0
 var charmux sync.Mutex
 
+func init() {
+	rand.Seed(time.Now().Unix())
+}
+
 func getCounter() string {
 	charmux.Lock()
 	_counter++
@@ -60,17 +64,16 @@ func getCounter() string {
 	}
 	charmux.Unlock()
 	return string(_charset[_counter])
-};
+}
 
 func randomInt(min, max int) int64 {
-	rand.Seed(time.Now().Unix())
 	return int64(rand.Intn(max-min) + min)
 }
 
 // NewMessageID generates a message ID, but make sure to seed the random number
 // generator. It follows the Mailsac makeId pattern.
 func NewMessageID() string {
-	idLength := randomInt(6, 8)
+	idLength := randomInt(9, 14)
 	dateEntropy := strconv.FormatInt((time.Now().UnixNano()/int64(time.Millisecond))+idLength, 36)[4:]
 	var randomPart []byte
 	key := make([]byte, idLength)
