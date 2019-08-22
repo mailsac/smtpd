@@ -2,7 +2,9 @@ package smtpd_test
 
 import (
 	"fmt"
+	"math/rand"
 	"net/smtp"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +18,16 @@ type MessageRecorder struct {
 func (m *MessageRecorder) Record(msg *smtpd.Message) error {
 	m.Messages = append(m.Messages, msg)
 	return nil
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func RandStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }
 
 func TestSMTPServer(t *testing.T) {
@@ -92,6 +104,56 @@ Content-Type: text/html
 		t.Errorf("wrong BCC value, want: bcc@example.net, got: %v", bcc[0].Address)
 	}
 
+}
+
+func TestSMTPServerLargeMessage(t *testing.T) {
+	// sends message that is over the allowed length. Expects "connection reset by peer" from server
+
+	recorder := &MessageRecorder{}
+	server := smtpd.NewServer(recorder.Record)
+	go server.ListenAndServe("localhost:0")
+	defer server.Close()
+
+	WaitUntilAlive(server)
+
+	// Connect to the remote SMTP server.
+	c, err := smtp.Dial(server.Address())
+	if err != nil {
+		t.Errorf("Should be able to dial localhost: %v", err)
+	}
+
+	// Set the sender and recipient first
+	if err := c.Mail("sender@example.org"); err != nil {
+		t.Errorf("Should be able to set a sender: %v", err)
+	}
+	if err := c.Rcpt("recipient@example.net"); err != nil {
+		t.Errorf("Should be able to set a RCPT: %v", err)
+	}
+
+	// Send the email body.
+	wc, err := c.Data()
+	if err != nil {
+		t.Errorf("Error creating the data body: %v", err)
+	}
+
+	var bodySizeKB = 500
+	var bodySize = bodySizeKB * 1024
+	var emailBody = "This is the email body" + RandStringBytes(bodySize)
+
+	_, err = fmt.Fprintf(wc, `From: sender@example.org
+To: recipient@example.net
+Content-Type: text/html
+
+%v`, emailBody)
+
+	var expected = "connection reset by peer"
+	var actual string
+	if err != nil {
+		actual = err.Error()
+	}
+	if !strings.Contains(actual, expected) {
+		t.Errorf("Error actual = %v, and Expected error to contain '%v'.", actual, expected)
+	}
 }
 
 func TestSMTPServerTimeout(t *testing.T) {
