@@ -295,11 +295,8 @@ func NewMessage(conn *Conn, data []byte, rcpt []*mail.Address, logger *log.Logge
 		return nil, err
 	}
 
-	// TODO: This isn't accurate, the To field should be all the values from RCPT TO:
-	to, err := m.Header.AddressList("To")
-	if err != nil {
-		return nil, err
-	}
+	// The "To": header is not required by RFC 2822, but ideally there is a CC or BCC
+	to, _ := m.Header.AddressList("To")
 
 	from, err := m.Header.AddressList("From")
 	if err != nil {
