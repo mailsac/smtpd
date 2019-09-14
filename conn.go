@@ -2,6 +2,7 @@ package smtpd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +13,25 @@ import (
 	"sync"
 	"time"
 )
+
+// LimitedReader keeps from reading past the suggested max size. It was copied from io and
+// altered to return a SMTPError.
+type LimitedReader struct {
+	R io.Reader // underlying reader
+	N int64  // max bytes remaining
+}
+
+func (l *LimitedReader) Read(p []byte) (n int, err error) {
+	if l.N <= 0 {
+		return 0, SMTPError{552, errors.New("Message size too large")}
+	}
+	if int64(len(p)) > l.N {
+		p = p[0:l.N]
+	}
+	n, err = l.R.Read(p)
+	l.N -= int64(n)
+	return
+}
 
 // Conn is a wrapper for net.Conn that provides
 // convenience handlers for SMTP requests
@@ -62,7 +82,7 @@ func (c *Conn) tp() *textproto.Conn {
 	c.asTextProto.Do(func() {
 		c.textProto = textproto.NewConn(c)
 		if c.MaxSize > 0 {
-			c.textProto.Reader = *textproto.NewReader(bufio.NewReader(io.LimitReader(c, c.MaxSize)))
+			c.textProto.Reader = *textproto.NewReader(bufio.NewReader(&LimitedReader{c, c.MaxSize}))
 		}
 	})
 	return c.textProto

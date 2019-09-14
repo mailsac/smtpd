@@ -398,6 +398,9 @@ ReadLoop:
 
 				} else {
 					s.Logger.Println(conn.ID, "DATA read error: ", err)
+					if serr, ok := err.(SMTPError); ok {
+						conn.WriteSMTP(serr.Code, serr.Error())
+					}
 				}
 			}
 		// Reset the connection
