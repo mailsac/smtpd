@@ -375,7 +375,11 @@ ReadLoop:
 				err := s.OnRcpt(conn.ToAddr, conn, messageID)
 				if err != nil {
 					passedRCPT = false
-					conn.WriteSMTP(554, fmt.Sprintf("Error: %v", err))
+					if serr, ok := err.(SMTPError); ok {
+						conn.WriteSMTP(serr.Code, serr.Error())
+					} else {
+						conn.WriteSMTP(554, fmt.Sprintf("Error: %v", err))
+					}
 				}
 			}
 
