@@ -465,16 +465,16 @@ ReadLoop:
 				newID := NewMessageID()
 				s.Logger.Printf("Upgraded TLS %v to %v", conn.ID, newID)
 				conn = &Conn{
-					ID:           newID,
-					Conn:         tlsConn,
-					IsTLS:        true,
-					User:         conn.User,
-					Errors:       conn.Errors,
-					MaxSize:      conn.MaxSize,
-					ReadTimeout:  s.ReadTimeout,
-					WriteTimeout: s.WriteTimeout,
+					ID:                newID,
+					Conn:              tlsConn,
+					IsTLS:             true,
+					User:              conn.User,
+					Errors:            conn.Errors,
+					MaxSize:           conn.MaxSize,
+					ReadTimeout:       s.ReadTimeout,
+					WriteTimeout:      s.WriteTimeout,
 					AdditionalHeaders: conn.AdditionalHeaders,
-					ForwardedForIP: conn.ForwardedForIP,
+					ForwardedForIP:    conn.ForwardedForIP,
 
 					Logger: s.Logger,
 					server: s,
@@ -492,7 +492,7 @@ ReadLoop:
 				conn.WriteSMTP(503, "You are already authenticated")
 			} else if s.Auth != nil {
 				if err := s.Auth.Handle(conn, args); err != nil {
-					if serr, ok := err.(*SMTPError); ok {
+					if serr, ok := err.(SMTPError); ok {
 						conn.WriteSMTP(serr.Code, serr.Error())
 					} else {
 						conn.WriteSMTP(500, "Authentication failed")
