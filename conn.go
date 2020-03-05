@@ -80,12 +80,16 @@ func (c *Conn) AddInfoHeader(headerName, headerText string) {
 // tp returns a textproto wrapper for this connection
 func (c *Conn) tp() *textproto.Conn {
 	c.asTextProto.Do(func() {
-		c.textProto = textproto.NewConn(c)
-		if c.MaxSize > 0 {
-			c.textProto.Reader = *textproto.NewReader(bufio.NewReader(&LimitedReader{c, c.MaxSize}))
-		}
+		c.resetTextProtoReader()
 	})
 	return c.textProto
+}
+
+func (c *Conn) resetTextProtoReader() {
+	c.textProto = textproto.NewConn(c)
+	if c.MaxSize > 0 {
+		c.textProto.Reader = *textproto.NewReader(bufio.NewReader(&LimitedReader{c, c.MaxSize}))
+	}
 }
 
 // StartTX starts a new MAIL transaction
@@ -110,6 +114,7 @@ func (c *Conn) EndTX() error {
 func (c *Conn) Reset() {
 	c.ResetBuffers()
 	c.User = nil
+	c.resetTextProtoReader() // reset LimitedReader
 	if c.server.Verbose {
 		c.Logger.Println(c.ID, "SERVER: resetting connection")
 	}
