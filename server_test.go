@@ -138,15 +138,16 @@ func TestSMTPServerLargeMessage(t *testing.T) {
 
 	var bodySizeKB = 500
 	var bodySize = bodySizeKB * 1024
-	var emailBody = "This is the email body" + RandStringBytes(bodySize)
+	var emailBody = "This is the email body" + RandStringBytes(bodySize) + "\n.\n"
 
-	_, err = fmt.Fprintf(wc, `From: sender@example.org
+	written, err := fmt.Fprintf(wc, `From: sender@example.org
 To: recipient@example.net
 Content-Type: text/html
 
 %v`, emailBody)
+	t.Log("written bytes", written, "/", 100+bodySize)
 
-	var expected = "connection reset by peer"
+	var expected = "broken pipe"
 	var actual string
 	if err != nil {
 		actual = err.Error()

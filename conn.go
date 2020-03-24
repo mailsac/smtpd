@@ -17,20 +17,35 @@ import (
 // LimitedReader keeps from reading past the suggested max size. It was copied from io and
 // altered to return a SMTPError.
 type LimitedReader struct {
-	R io.Reader // underlying reader
-	N int64  // max bytes remaining
+	R              io.Reader // underlying reader
+	N              int64     // max bytes remaining
+	ReadsRemaining int
+	DidHitLimit    bool
 }
 
 func (l *LimitedReader) Read(p []byte) (n int, err error) {
-	if l.N <= 0 {
-		return 0, SMTPError{552, errors.New("Message size too large")}
+	if l.N <= 0 && !l.DidHitLimit {
+		l.DidHitLimit = true
+		l.ReadsRemaining = 10 // allow filling the buffer
 	}
-	if int64(len(p)) > l.N {
-		p = p[0:l.N]
+	if l.DidHitLimit {
+		l.ReadsRemaining--
+		// it will still Read a few more times as TextProto fills the buffer
+		// before responding with the error
+		err = SMTPError{552, errors.New("Message size too large")}
+		if l.ReadsRemaining <= 0 {
+			// bufio builtin needs regular error. we will already have written 552 to smtp by
+			// the time this code path is traveled.
+			return 0, err
+		}
 	}
-	n, err = l.R.Read(p)
+
+	n, rerr := l.R.Read(p)
+	if err != nil && rerr != nil {
+		err = rerr
+	}
 	l.N -= int64(n)
-	return
+	return n, err
 }
 
 // Conn is a wrapper for net.Conn that provides
@@ -80,12 +95,16 @@ func (c *Conn) AddInfoHeader(headerName, headerText string) {
 // tp returns a textproto wrapper for this connection
 func (c *Conn) tp() *textproto.Conn {
 	c.asTextProto.Do(func() {
-		c.textProto = textproto.NewConn(c)
-		if c.MaxSize > 0 {
-			c.textProto.Reader = *textproto.NewReader(bufio.NewReader(&LimitedReader{c, c.MaxSize}))
-		}
+		c.setupTextProto()
 	})
 	return c.textProto
+}
+
+func (c *Conn) setupTextProto() {
+	c.textProto = textproto.NewConn(c)
+	if c.MaxSize > 0 {
+		c.textProto.Reader = *textproto.NewReader(bufio.NewReader(&LimitedReader{c, c.MaxSize, 0, false}))
+	}
 }
 
 // StartTX starts a new MAIL transaction
@@ -121,6 +140,7 @@ func (c *Conn) ResetBuffers() {
 	c.ToAddr = make([]*mail.Address, 0)
 	c.AdditionalHeaders = ""
 	c.transaction = 0
+	c.setupTextProto()
 }
 
 // ReadSMTP pulls a single SMTP command line (ending in a carriage return + newline)
