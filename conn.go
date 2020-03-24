@@ -129,6 +129,7 @@ func (c *Conn) EndTX() error {
 func (c *Conn) Reset() {
 	c.ResetBuffers()
 	c.User = nil
+	c.resetTextProto() // reset LimitedReader
 	if c.server.Verbose {
 		c.Logger.Println(c.ID, "SERVER: resetting connection")
 	}
