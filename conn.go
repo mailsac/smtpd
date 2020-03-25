@@ -32,7 +32,7 @@ func (l *LimitedReader) Read(p []byte) (n int, err error) {
 		l.ReadsRemaining--
 		// it will still Read a few more times as TextProto fills the buffer
 		// before responding with the error
-		err = SMTPError{552, errors.New("Message size too large")}
+		err = SMTPError{552, errors.New("message size too large")}
 		if l.ReadsRemaining <= 0 {
 			// bufio builtin needs regular error. we will already have written 552 to smtp by
 			// the time this code path is traveled.
@@ -129,7 +129,6 @@ func (c *Conn) EndTX() error {
 func (c *Conn) Reset() {
 	c.ResetBuffers()
 	c.User = nil
-	c.resetTextProto() // reset LimitedReader
 	if c.server.Verbose {
 		c.Logger.Println(c.ID, "SERVER: resetting connection")
 	}
