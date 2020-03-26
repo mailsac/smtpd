@@ -84,6 +84,8 @@ type Conn struct {
 	Logger *log.Logger
 
 	server *Server
+
+	limitedReader *LimitedReader
 }
 
 // AddInfoHeader adds an additional header to the beginning of the list, such that the newest
@@ -103,7 +105,8 @@ func (c *Conn) tp() *textproto.Conn {
 func (c *Conn) setupTextProto() {
 	c.textProto = textproto.NewConn(c)
 	if c.MaxSize > 0 {
-		c.textProto.Reader = *textproto.NewReader(bufio.NewReader(&LimitedReader{c, c.MaxSize, 0, false}))
+		c.limitedReader = &LimitedReader{c, c.MaxSize, 0, false}
+		c.textProto.Reader = *textproto.NewReader(bufio.NewReader(c.limitedReader))
 	}
 }
 
@@ -134,13 +137,16 @@ func (c *Conn) Reset() {
 	}
 }
 
-// ResetBuffers resets the mail buffers (to, from)
+// ResetBuffers resets the mail buffers (to, from) but not auth
 func (c *Conn) ResetBuffers() {
 	c.FromAddr = nil
 	c.ToAddr = make([]*mail.Address, 0)
 	c.AdditionalHeaders = ""
 	c.transaction = 0
-	c.setupTextProto()
+
+	c.limitedReader.N = c.MaxSize
+	c.limitedReader.DidHitLimit = false
+	c.limitedReader.ReadsRemaining = 0
 }
 
 // ReadSMTP pulls a single SMTP command line (ending in a carriage return + newline)
