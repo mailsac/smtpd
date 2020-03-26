@@ -88,8 +88,11 @@ func NewMessageID() string {
 		}
 		randomPart = fallback
 	}
-
-	return dateEntropy + getCounter() + strings.Replace(base64.URLEncoding.EncodeToString(randomPart), "=", "", -1)
+	randString := strings.Replace(base64.URLEncoding.EncodeToString(randomPart), "=", "", -1)
+	randString = strings.Replace(randString, "-", "a", -1)
+	randString = strings.Replace(randString, "/", "b", -1)
+	randString = strings.Replace(randString, "_", "c", -1)
+	return dateEntropy + getCounter() + randString
 }
 
 // BCC returns a list of addresses this message should be
