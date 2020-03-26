@@ -271,7 +271,7 @@ ReadLoop:
 				// too slow, timeout
 				break ReadLoop
 			}
-			s.Logger.Println(conn.ID, "Read error", err)
+			s.Logger.Println(conn.ID, "Read error to=", conn.ToAddr, " from=", conn.FromAddr, conn.ClientHostname, err)
 			return err
 		}
 
