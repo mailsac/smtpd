@@ -2,22 +2,17 @@ package smtpd
 
 import (
 	"bytes"
-	cryptoRand "crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"mime"
 	"mime/multipart"
 	"mime/quotedprintable"
 	"net/mail"
 	"net/textproto"
-	"strconv"
 	"strings"
-	"sync"
-	"time"
 )
 
 // Message is a nicely packaged representation of the received message
@@ -44,55 +39,6 @@ type Part struct {
 	part     *multipart.Part
 	Body     []byte
 	Children []*Part
-}
-
-const _charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-var charIndexes = len(_charset) - 1
-var _counter = 0
-var charmux sync.Mutex
-
-func init() {
-	rand.Seed(time.Now().Unix())
-}
-
-func getCounter() string {
-	charmux.Lock()
-	_counter++
-	if _counter > charIndexes {
-		_counter = 0
-	}
-	charmux.Unlock()
-	return string(_charset[_counter])
-}
-
-func randomInt(min, max int) int64 {
-	return int64(rand.Intn(max-min) + min)
-}
-
-// NewMessageID generates a message ID, but make sure to seed the random number
-// generator. It follows the Mailsac makeId pattern.
-func NewMessageID() string {
-	idLength := randomInt(9, 14)
-	dateEntropy := strconv.FormatInt((time.Now().UnixNano()/int64(time.Millisecond))+idLength, 36)[4:]
-	var randomPart []byte
-	key := make([]byte, idLength)
-	_, err := cryptoRand.Read(key[:])
-	if err == nil {
-		randomPart = key
-	} else {
-		// fallback to non-crypto random
-		fallback := make([]byte, idLength)
-		for i := range fallback {
-			fallback[i] = _charset[rand.Intn(charIndexes)]
-		}
-		randomPart = fallback
-	}
-	randString := strings.Replace(base64.URLEncoding.EncodeToString(randomPart), "=", "", -1)
-	randString = strings.Replace(randString, "-", "a", -1)
-	randString = strings.Replace(randString, "/", "b", -1)
-	randString = strings.Replace(randString, "_", "c", -1)
-	return dateEntropy + getCounter() + randString
 }
 
 // BCC returns a list of addresses this message should be

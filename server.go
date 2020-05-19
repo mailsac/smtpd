@@ -90,6 +90,7 @@ func NewServer(handler func(*Message) error) *Server {
 
 // NewServerWithLogger creates a server with a customer logger
 func NewServerWithLogger(handler func(*Message) error, logger *log.Logger) *Server {
+	InitPseudoRandomNumberGeneratorFallback()
 	name, err := os.Hostname()
 	if err != nil {
 		name = "localhost"
