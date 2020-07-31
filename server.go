@@ -81,6 +81,8 @@ type Server struct {
 
 	// Ready is a channel that will receive a single `true` when the server has started
 	Ready chan bool
+
+	PreAuthVerbsAllowed []string
 }
 
 // NewServer creates a server with the default settings
@@ -96,17 +98,18 @@ func NewServerWithLogger(handler func(*Message) error, logger *log.Logger) *Serv
 		name = "localhost"
 	}
 	return &Server{
-		Name:         name,
-		ServerName:   name,
-		MaxSize:      DefaultMessageSizeMax,
-		MaxCommands:  DefaultSessionCommandsMax,
-		Handler:      handler,
-		Extensions:   make(map[string]Extension),
-		Disabled:     make(map[string]bool),
-		Logger:       logger,
-		ReadTimeout:  DefaultReadTimeout,
-		WriteTimeout: DefaultWriteTimeout,
-		Ready:        make(chan bool, 1),
+		Name:                name,
+		ServerName:          name,
+		MaxSize:             DefaultMessageSizeMax,
+		MaxCommands:         DefaultSessionCommandsMax,
+		Handler:             handler,
+		Extensions:          make(map[string]Extension),
+		Disabled:            make(map[string]bool),
+		Logger:              logger,
+		ReadTimeout:         DefaultReadTimeout,
+		WriteTimeout:        DefaultWriteTimeout,
+		Ready:               make(chan bool, 1),
+		PreAuthVerbsAllowed: []string{"AUTH", "EHLO", "HELO", "NOOP", "RSET", "QUIT", "STARTTLS"},
 	}
 }
 
@@ -300,10 +303,11 @@ ReadLoop:
 
 		// Auth overrides
 		if s.Auth != nil && conn.User == nil {
-			switch verb {
-			case "AUTH", "EHLO", "HELO", "NOOP", "RSET", "QUIT", "STARTTLS":
+			switch {
+			case stringInList(verb, s.PreAuthVerbsAllowed):
 				// these are okay to call without authentication on an Auth-enabled server
-			case "*":
+				break
+			case verb == "*":
 				conn.WriteSMTP(501, "Cancelled")
 				continue
 			default:
@@ -542,4 +546,13 @@ func (s *Server) GetAddressArg(argName string, args string) (*mail.Address, erro
 	}
 
 	return nil, fmt.Errorf("Bad arguments")
+}
+
+func stringInList(s string, allowed []string) bool {
+	for _, a := range allowed {
+		if a == s {
+			return true
+		}
+	}
+	return false
 }
