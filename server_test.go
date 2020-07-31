@@ -209,3 +209,56 @@ func TestSMTPServerNoTLS(t *testing.T) {
 	}
 
 }
+
+func TestSMTPServerNoAuthCustomVerb(t *testing.T) {
+
+	fakeAuthHandler := func(email, apiKey string) (acct smtpd.AuthUser, passed bool) {
+		return nil, false
+	}
+	setup := func() (*smtpd.Server, *smtp.Client) {
+		recorder := &MessageRecorder{}
+		server := smtpd.NewServer(recorder.Record)
+		serverAuth := smtpd.NewAuth()
+		serverAuth.Extend("PLAIN", &smtpd.AuthPlain{Auth: fakeAuthHandler})
+
+		server.Auth = serverAuth
+
+		go server.ListenAndServe("localhost:0")
+
+		WaitUntilAlive(server)
+
+		// Connect to the remote SMTP server.
+		c, err := smtp.Dial(server.Address())
+		if err != nil {
+			t.Errorf("Should be able to dial localhost: %v", err)
+		}
+
+		return server, c
+	}
+
+	t.Run("prevents verb when NOT in pre auth verbs", func(t *testing.T) {
+		server, c := setup()
+		defer server.Close()
+
+		// remove support for any methods
+		// first ie HELO
+		server.PreAuthVerbsAllowed = []string{"AUTH", "FAKE"}
+
+		// check support
+		err := c.Hello("you.io")
+		if err == nil {
+			t.Errorf("Should have NOT allowed HELO")
+		}
+	})
+	t.Run("allows extension verb when IS included as pre auth ok", func(t *testing.T) {
+		server, c := setup()
+		defer server.Close()
+
+		// the test change
+		server.PreAuthVerbsAllowed = []string{"AUTH", "HELO"}
+		err := c.Hello("me.com")
+		if err != nil {
+			t.Errorf("Should have allowed HELO, %v", err)
+		}
+	})
+}
