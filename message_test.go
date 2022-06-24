@@ -7,7 +7,7 @@ import (
 
 	"net/mail"
 
-	"github.com/ruffrey/smtpd"
+	"github.com/mailsac/smtpd"
 )
 
 const (

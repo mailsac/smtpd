@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/ruffrey/smtpd"
+	"github.com/mailsac/smtpd"
 )
 
 var tlsGen sync.Once

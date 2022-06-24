@@ -2,7 +2,7 @@ package smtpd_test
 
 import (
 	"fmt"
-	"github.com/ruffrey/smtpd"
+	"github.com/mailsac/smtpd"
 	"testing"
 )
 
@@ -13,7 +13,7 @@ func Test_MessageID(t *testing.T) {
 		var id string
 		for i := 0; i < 1000000; i++ {
 			id = smtpd.NewMessageID()
-			if i % 500000 == 0 {
+			if i%500000 == 0 {
 				fmt.Println("NewMessageID test: ", id)
 			}
 			if o[id] {

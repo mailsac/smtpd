@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ruffrey/smtpd"
+	"github.com/mailsac/smtpd"
 )
 
 type MessageRecorder struct {
