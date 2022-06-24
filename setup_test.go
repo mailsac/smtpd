@@ -1,4 +1,4 @@
-package smtpd_test
+package smtpd
 
 import (
 	"crypto/rand"
@@ -10,8 +10,6 @@ import (
 	"net"
 	"sync"
 	"testing"
-
-	"github.com/mailsac/smtpd"
 )
 
 var tlsGen sync.Once
@@ -65,7 +63,7 @@ func TestingTLSConfig() *tls.Config {
 }
 
 // WaitUntilAlive is a helper function to allow us to not start tests until a server boots
-func WaitUntilAlive(s *smtpd.Server) {
+func WaitUntilAlive(s *Server) {
 	if alive := <-s.Ready; !alive {
 		panic("server reported Not Ready")
 	}

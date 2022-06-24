@@ -1,12 +1,10 @@
-package smtpd_test
+package smtpd
 
 import (
 	"crypto/tls"
 	"net/smtp"
 	"testing"
 	"time"
-
-	"github.com/mailsac/smtpd"
 )
 
 type TestUser struct {
@@ -24,11 +22,11 @@ func (t *TestUser) Password() string {
 
 func TestSMTPAuthPlain(t *testing.T) {
 	recorder := &MessageRecorder{}
-	server := smtpd.NewServer(recorder.Record)
+	server := NewServer(recorder.Record)
 
-	serverAuth := smtpd.NewAuth()
-	serverAuth.Extend("PLAIN", &smtpd.AuthPlain{
-		Auth: func(username, password string) (smtpd.AuthUser, bool) {
+	serverAuth := NewAuth()
+	serverAuth.Extend("PLAIN", &AuthPlain{
+		Auth: func(username, password string) (AuthUser, bool) {
 			return &TestUser{}, true
 		},
 	})
@@ -60,16 +58,16 @@ func TestSMTPAuthPlain(t *testing.T) {
 
 func TestSMTPAuthPlainRejection(t *testing.T) {
 	recorder := &MessageRecorder{}
-	server := smtpd.NewServer(recorder.Record)
+	server := NewServer(recorder.Record)
 
 	passwd := map[string]string{
 		"user@example.com": "password",
 		"user@example.ca":  "canadian-password",
 	}
 
-	serverAuth := smtpd.NewAuth()
-	serverAuth.Extend("PLAIN", &smtpd.AuthPlain{
-		Auth: func(username, password string) (smtpd.AuthUser, bool) {
+	serverAuth := NewAuth()
+	serverAuth.Extend("PLAIN", &AuthPlain{
+		Auth: func(username, password string) (AuthUser, bool) {
 			if passwd[username] == password {
 				return &TestUser{username, password}, true
 			}
@@ -119,11 +117,11 @@ func TestSMTPAuthPlainRejection(t *testing.T) {
 
 func TestSMTPAuthLocking(t *testing.T) {
 	recorder := &MessageRecorder{}
-	server := smtpd.NewServer(recorder.Record)
+	server := NewServer(recorder.Record)
 
-	serverAuth := smtpd.NewAuth()
-	serverAuth.Extend("PLAIN", &smtpd.AuthPlain{
-		Auth: func(username, password string) (smtpd.AuthUser, bool) {
+	serverAuth := NewAuth()
+	serverAuth.Extend("PLAIN", &AuthPlain{
+		Auth: func(username, password string) (AuthUser, bool) {
 			return &TestUser{}, true
 		},
 	})
@@ -148,11 +146,11 @@ func TestSMTPAuthLocking(t *testing.T) {
 
 func TestSMTPAuthPlainEncryption(t *testing.T) {
 	recorder := &MessageRecorder{}
-	server := smtpd.NewServer(recorder.Record)
+	server := NewServer(recorder.Record)
 
-	serverAuth := smtpd.NewAuth()
-	serverAuth.Extend("PLAIN", &smtpd.AuthPlain{
-		Auth: func(username, password string) (smtpd.AuthUser, bool) {
+	serverAuth := NewAuth()
+	serverAuth.Extend("PLAIN", &AuthPlain{
+		Auth: func(username, password string) (AuthUser, bool) {
 			return &TestUser{}, true
 		},
 	})
@@ -180,11 +178,11 @@ func TestSMTPAuthPlainEncryption(t *testing.T) {
 
 func TestSMTPAuthCramMd5(t *testing.T) {
 	recorder := &MessageRecorder{}
-	server := smtpd.NewServer(recorder.Record)
+	server := NewServer(recorder.Record)
 
-	serverAuth := smtpd.NewAuth()
-	serverAuth.Extend("CRAM-MD5", &smtpd.AuthCramMd5{
-		FindUser: func(username string) (smtpd.AuthUser, error) {
+	serverAuth := NewAuth()
+	serverAuth.Extend("CRAM-MD5", &AuthCramMd5{
+		FindUser: func(username string) (AuthUser, error) {
 			return &TestUser{"user@test.com", "password"}, nil
 		},
 	})

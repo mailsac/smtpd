@@ -1,4 +1,4 @@
-package smtpd_test
+package smtpd
 
 import (
 	"fmt"
@@ -7,15 +7,13 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/mailsac/smtpd"
 )
 
 type MessageRecorder struct {
-	Messages []*smtpd.Message
+	Messages []*Message
 }
 
-func (m *MessageRecorder) Record(msg *smtpd.Message) error {
+func (m *MessageRecorder) Record(msg *Message) error {
 	m.Messages = append(m.Messages, msg)
 	return nil
 }
@@ -33,7 +31,7 @@ func RandStringBytes(n int) string {
 func TestSMTPServer(t *testing.T) {
 
 	recorder := &MessageRecorder{}
-	server := smtpd.NewServer(recorder.Record)
+	server := NewServer(recorder.Record)
 	go server.ListenAndServe("localhost:0")
 	defer server.Close()
 
@@ -108,9 +106,13 @@ Content-Type: text/html
 
 func TestSMTPServerLargeMessage(t *testing.T) {
 	// sends message that is over the allowed length. Expects "connection reset by peer" from server
-
+	bodySizeKB := 500
+	bodySize := bodySizeKB * 1024
+	emailBody := "This is the email body" + RandStringBytes(bodySize) + "\n.\n"
 	recorder := &MessageRecorder{}
-	server := smtpd.NewServer(recorder.Record)
+	server := NewServer(recorder.Record)
+	server.Verbose = true
+	server.MaxSize = int64(bodySizeKB / 2) // set it up too small
 	go server.ListenAndServe("localhost:0")
 	defer server.Close()
 
@@ -135,17 +137,16 @@ func TestSMTPServerLargeMessage(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating the data body: %v", err)
 	}
-
-	var bodySizeKB = 500
-	var bodySize = bodySizeKB * 1024
-	var emailBody = "This is the email body" + RandStringBytes(bodySize) + "\n.\n"
-
-	written, err := fmt.Fprintf(wc, `From: sender@example.org
+	// write until overloading
+	var written int
+	for err == nil {
+		written, err = fmt.Fprintf(wc, `From: sender@example.org
 To: recipient@example.net
 Content-Type: text/html
 
 %v`, emailBody)
-	t.Log("written bytes", written, "/", 100+bodySize)
+		t.Log("written bytes", written)
+	}
 
 	var expected = "broken pipe"
 	var actual string
@@ -160,7 +161,7 @@ Content-Type: text/html
 func TestSMTPServerTimeout(t *testing.T) {
 
 	recorder := &MessageRecorder{}
-	server := smtpd.NewServer(recorder.Record)
+	server := NewServer(recorder.Record)
 
 	// Set some really short timeouts
 	server.ReadTimeout = time.Millisecond * 1
@@ -190,7 +191,7 @@ func TestSMTPServerTimeout(t *testing.T) {
 func TestSMTPServerNoTLS(t *testing.T) {
 
 	recorder := &MessageRecorder{}
-	server := smtpd.NewServer(recorder.Record)
+	server := NewServer(recorder.Record)
 
 	go server.ListenAndServe("localhost:0")
 	defer server.Close()
@@ -212,14 +213,14 @@ func TestSMTPServerNoTLS(t *testing.T) {
 
 func TestSMTPServerNoAuthCustomVerb(t *testing.T) {
 
-	fakeAuthHandler := func(email, apiKey string) (acct smtpd.AuthUser, passed bool) {
+	fakeAuthHandler := func(email, apiKey string) (acct AuthUser, passed bool) {
 		return nil, false
 	}
-	setup := func() (*smtpd.Server, *smtp.Client) {
+	setup := func() (*Server, *smtp.Client) {
 		recorder := &MessageRecorder{}
-		server := smtpd.NewServer(recorder.Record)
-		serverAuth := smtpd.NewAuth()
-		serverAuth.Extend("PLAIN", &smtpd.AuthPlain{Auth: fakeAuthHandler})
+		server := NewServer(recorder.Record)
+		serverAuth := NewAuth()
+		serverAuth.Extend("PLAIN", &AuthPlain{Auth: fakeAuthHandler})
 
 		server.Auth = serverAuth
 
