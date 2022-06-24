@@ -406,7 +406,9 @@ ReadLoop:
 							conn.WriteSMTP(554, fmt.Sprintf("Error: internal - %v", err))
 						}
 
-					} else {
+					} else if err != io.EOF {
+						// EOF will mean the data is empty - missing/no message text or body, which
+						// is acceptable
 						conn.WriteSMTP(554, fmt.Sprintf("Error post RCPT: %v", err))
 					}
 
