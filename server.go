@@ -388,7 +388,7 @@ ReadLoop:
 					if serr, ok := err.(SMTPError); ok {
 						conn.WriteSMTP(serr.Code, serr.Error())
 					} else {
-						conn.WriteSMTP(554, fmt.Sprintf("Error: %v", err))
+						conn.WriteSMTP(554, fmt.Sprintf("DATA Error: %v", err))
 					}
 				}
 			}
@@ -407,7 +407,7 @@ ReadLoop:
 						}
 
 					} else {
-						conn.WriteSMTP(554, fmt.Sprintf("Error: %v", err))
+						conn.WriteSMTP(554, fmt.Sprintf("Error post RCPT: %v", err))
 					}
 
 				} else {
