@@ -395,29 +395,56 @@ ReadLoop:
 
 			if passedRCPT {
 				conn.WriteSMTP(354, "Enter message, ending with \".\" on a line by itself")
-				if data, err := conn.ReadData(); err == nil {
-					if message, err := NewMessage(conn, []byte(data), conn.ToAddr, s.Logger); err == nil && (conn.EndTX() == nil) {
-						message.MessageID = messageID
-						if err := s.handleMessage(message); err == nil {
-							conn.WriteSMTP(250, fmt.Sprintf("OK : queued as %v", message.MessageID))
-						} else if serr, ok := err.(SMTPError); ok {
-							conn.WriteSMTP(serr.Code, serr.Error())
-						} else {
-							conn.WriteSMTP(554, fmt.Sprintf("Error: internal - %v", err))
-						}
-
-					} else if err != io.EOF {
-						// EOF will mean the data is empty - missing/no message text or body, which
-						// is acceptable
-						conn.WriteSMTP(554, fmt.Sprintf("Error post RCPT: %v", err))
-					}
-
-				} else {
-					s.Logger.Println(conn.ID, "DATA read error: ", err)
+				data, err := conn.ReadData()
+				if err != nil {
+					e := fmt.Sprintf("Error DATA read: %s", err.Error())
+					s.Logger.Println(conn.ID, e)
 					if serr, ok := err.(SMTPError); ok {
 						conn.WriteSMTP(serr.Code, serr.Error())
+					} else {
+						conn.WriteSMTP(554, e)
 					}
+					continue
 				}
+				// handle this later
+				message, err := NewMessage(conn, []byte(data), conn.ToAddr, s.Logger)
+
+				closeTransErr := conn.EndTX()
+				if closeTransErr != nil {
+					e := fmt.Sprintf("Error closing conn tx: %s", err.Error())
+					s.Logger.Println(conn.ID, e)
+					if serr, ok := err.(SMTPError); ok {
+						conn.WriteSMTP(serr.Code, serr.Error())
+					} else {
+						conn.WriteSMTP(554, e)
+					}
+					continue
+				}
+				if err != nil {
+					e := fmt.Sprintf("Error create msg: %s", err.Error())
+					s.Logger.Println(conn.ID, e)
+					if serr, ok := err.(SMTPError); ok {
+						conn.WriteSMTP(serr.Code, serr.Error())
+					} else {
+						conn.WriteSMTP(554, e)
+					}
+					continue
+				}
+
+				message.MessageID = messageID
+				err = s.handleMessage(message)
+				if err != nil {
+					e := fmt.Sprintf("Error handling msg: %s", err.Error())
+					s.Logger.Println(conn.ID, e)
+					if serr, ok := err.(SMTPError); ok {
+						conn.WriteSMTP(serr.Code, serr.Error())
+					} else {
+						conn.WriteSMTP(554, e)
+					}
+					continue
+				}
+
+				conn.WriteSMTP(250, fmt.Sprintf("OK : queued as %v", message.MessageID))
 			}
 		// Reset the connection
 		// see: https://tools.ietf.org/html/rfc2821#section-4.1.1.5

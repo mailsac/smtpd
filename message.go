@@ -239,6 +239,10 @@ func (m *Message) Parts() ([]*Part, error) {
 
 // NewMessage creates a Message from a data blob and a recipients list
 func NewMessage(conn *Conn, data []byte, rcpt []*mail.Address, logger *log.Logger) (*Message, error) {
+	if len(data) == 0 {
+		// empty body is allowed, but mail.ReadMessage is standard lib and throws io.EOF on empty buffer
+		data = []byte("\n")
+	}
 	m, err := mail.ReadMessage(bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
