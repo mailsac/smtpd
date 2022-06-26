@@ -240,10 +240,14 @@ func (m *Message) Parts() ([]*Part, error) {
 // NewMessage creates a Message from a data blob and a recipients list
 func NewMessage(conn *Conn, data []byte, rcpt []*mail.Address, logger *log.Logger) (*Message, error) {
 	m, err := mail.ReadMessage(bytes.NewBuffer(data))
-	if err != nil && err != io.EOF {
+	if err == io.EOF {
 		// Empty body is allowed, but mail.ReadMessage is standard lib and throws io.EOF when it cannot
 		// find a mime type section that starts the body for the message.
-		// Note that this will cause message.HTML() and the like to return an error.
+		// Note that this will cause message.HTML() and Header to be empty, causing errors.
+		data = append(data, []byte("\nContent-Type: text/plain\n\n\n")...)
+		m, err = mail.ReadMessage(bytes.NewBuffer(data))
+	}
+	if err != nil {
 		return nil, err
 	}
 
@@ -253,14 +257,6 @@ func NewMessage(conn *Conn, data []byte, rcpt []*mail.Address, logger *log.Logge
 	from, err := m.Header.AddressList("From")
 	if err != nil {
 		return nil, err
-	}
-
-	header := make(map[string]string)
-
-	for k, v := range m.Header {
-		if len(v) == 1 {
-			header[k] = v[0]
-		}
 	}
 
 	raw, err := ioutil.ReadAll(m.Body)
