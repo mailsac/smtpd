@@ -244,7 +244,7 @@ func NewMessage(conn *Conn, data []byte, rcpt []*mail.Address, logger *log.Logge
 		// Empty body is allowed, but mail.ReadMessage is standard lib and throws io.EOF when it cannot
 		// find a mime type section that starts the body for the message.
 		// Note that this will cause message.HTML() and Header to be empty, causing errors.
-		data = append(data, []byte("\nContent-Type: text/plain\n\n\n")...)
+		data = append(data, []byte("Content-Type: text/plain\n\n\n")...)
 		m, err = mail.ReadMessage(bytes.NewBuffer(data))
 	}
 	if err != nil {
