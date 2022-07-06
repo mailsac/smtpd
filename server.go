@@ -502,7 +502,8 @@ ReadLoop:
 			tlsConn.SetDeadline(time.Now().Add(s.WriteTimeout))
 			if err := tlsConn.Handshake(); err == nil {
 				newID := NewMessageID()
-				s.Logger.Printf("Upgraded TLS %v to %v", conn.ID, newID)
+				// TODO Add logging of upgrade to TLS when log levels are implemented
+				// s.Logger.Printf("Upgraded TLS %v to %v", conn.ID, newID)
 				conn = &Conn{
 					ID:                newID,
 					Conn:              tlsConn,
