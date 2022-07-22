@@ -503,7 +503,7 @@ ReadLoop:
 			if err := tlsConn.Handshake(); err == nil {
 				newID := NewMessageID()
 				if conn.server.Verbose {
-					s.Logger.Printf("Upgraded TLS. Changed messageId from %v to %v", conn.ID, newID)
+					s.Logger.Printf("Upgraded TLS. Changed pre-TLS connection ID from %v to %v", conn.ID, newID)
 				}
 				conn = &Conn{
 					ID:                newID,
