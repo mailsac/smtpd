@@ -502,7 +502,9 @@ ReadLoop:
 			tlsConn.SetDeadline(time.Now().Add(s.WriteTimeout))
 			if err := tlsConn.Handshake(); err == nil {
 				newID := NewMessageID()
-				s.Logger.Printf("Upgraded TLS %v to %v", conn.ID, newID)
+				if conn.server.Verbose {
+					s.Logger.Printf("Upgraded TLS. Changed pre-TLS connection ID from %v to %v", conn.ID, newID)
+				}
 				conn = &Conn{
 					ID:                newID,
 					Conn:              tlsConn,
