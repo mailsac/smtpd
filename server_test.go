@@ -148,13 +148,17 @@ Content-Type: text/html
 		t.Log("written bytes", written)
 	}
 
-	var expected = "broken pipe"
+	var expected1 = "broken pipe"
+	var expected2 = "connection reset by peer"
 	var actual string
 	if err != nil {
 		actual = err.Error()
 	}
-	if !strings.Contains(actual, expected) {
-		t.Errorf("Error actual = %v, and Expected error to contain '%v'.", actual, expected)
+	if !strings.Contains(actual, expected1) && !strings.Contains(actual, expected2) {
+		t.Errorf(
+			"Error actual = %v, and Expected error to contain either: 1) '%v' OR 2) '%v'.",
+			actual, expected1, expected2,
+		)
 	}
 }
 

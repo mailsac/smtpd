@@ -1,0 +1,61 @@
+name: Go
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.18
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -coverprofile coverage.out ./... > coverage.txt
+
+    - name: Go Coverage Badge
+      uses: tj-actions/coverage-badge-go@v1.2
+    
+    - name: "Post to PR"
+      uses: EliLillyCo/github-actions-post-to-pr@main
+      with:
+        github_token: ${{ github.token }}
+        post_to_pr_definition: |
+          [
+            {
+              "message_file": "./coverage.txt",
+              "title": "Test Coverage Report"
+            }
+          ]
+
+    - name: Verify Changed files
+      uses: tj-actions/verify-changed-files@v10.1
+      id: verify-changed-files
+      with:
+        files: README.md
+
+    - name: Commit changes
+      if: github.ref == 'refs/heads/master' && steps.verify-changed-files.outputs.files_changed == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add README.md
+        git commit -m "chore: Updated test coverage badge."
+
+    - name: Push changes
+      if: github.ref == 'refs/heads/master' && steps.verify-changed-files.outputs.files_changed == 'true'
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ github.token }}
+        branch: ${{ github.head_ref }}
