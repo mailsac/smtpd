@@ -33,7 +33,7 @@ jobs:
         # At what percentage does the badge become green instead of yellow (default: 70)
         green: 65
         # At what percentage does the badge become yellow instead of red (default 30)
-        yellow: 40 # optional
+        yellow: 40
     
     - name: Verify Changed files
       uses: tj-actions/verify-changed-files@v9.1
