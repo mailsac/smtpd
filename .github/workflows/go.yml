@@ -33,7 +33,7 @@ jobs:
         yellow: 40
 
     - name: Verify Changed files
-      uses: tj-actions/verify-changed-files@v10.2
+      uses: tj-actions/verify-changed-files@v10.1
       id: verify-changed-files
       with:
         files: README.md
