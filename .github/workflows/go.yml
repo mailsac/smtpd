@@ -29,11 +29,11 @@ jobs:
       uses: tj-actions/coverage-badge-go@v1.2
       with:
         filename: coverage.out
-        green: "65"
-        yellow: "40"
-    
+        green: 65
+        yellow: 40
+
     - name: Verify Changed files
-      uses: tj-actions/verify-changed-files@v9.1
+      uses: tj-actions/verify-changed-files@v10.2
       id: verify-changed-files
       with:
         files: README.md
