@@ -67,7 +67,7 @@ func TestSMTPServer(t *testing.T) {
 To: recipient@example.net
 Content-Type: text/html
 
-%v`, emailBody)
+%s`, emailBody)
 	if err != nil {
 		t.Errorf("Error writing email: %v", err)
 	}
@@ -266,4 +266,80 @@ func TestSMTPServerNoAuthCustomVerb(t *testing.T) {
 			t.Errorf("Should have allowed HELO, %v", err)
 		}
 	})
+}
+
+func TestServer_DiscardMessageBody(t *testing.T) {
+	recorder := &MessageRecorder{}
+
+	// Setup the SMTP server with DiscardBody enabled
+	server := NewServer(recorder.Record)
+	server.DiscardBody = true // Enable discarding the message body
+	go server.ListenAndServe("localhost:0")
+	defer server.Close()
+
+	WaitUntilAlive(server)
+
+	// Connect to the SMTP server
+	c, err := smtp.Dial(server.Address())
+	if err != nil {
+		t.Fatalf("Should be able to dial localhost: %v", err)
+	}
+
+	// Set the sender and recipient
+	if err := c.Mail("sender@example.org"); err != nil {
+		t.Fatalf("Should be able to set a sender: %v", err)
+	}
+	if err := c.Rcpt("recipient@example.net"); err != nil {
+		t.Fatalf("Should be able to set a RCPT: %v", err)
+	}
+
+	// Start the data command
+	wc, err := c.Data()
+	if err != nil {
+		t.Fatalf("Error creating the data body: %v", err)
+	}
+
+	// Write headers followed by the body (this should be discarded)
+	// Ensure well-formed headers
+	emailBody := "This is the email body that should be discarded"
+	_, err = fmt.Fprintf(wc, `From: sender@example.org
+To: recipient@example.net
+Subject: Test email
+
+%v`, emailBody)
+	if err != nil {
+		t.Fatalf("Error writing email body: %v", err)
+	}
+
+	// Ensure the writer is closed to signal end of data
+	if err := wc.Close(); err != nil {
+		t.Fatalf("Error closing writer: %v", err)
+	}
+
+	// Send the QUIT command and close the connection
+	if err := c.Quit(); err != nil {
+		t.Fatalf("Server wouldn't accept QUIT: %v", err)
+	}
+
+	// Verify that headers were recorded but no message body
+	if len(recorder.Messages) != 1 {
+		t.Errorf("Expected 1 message, got: %v", len(recorder.Messages))
+	}
+
+	// Check that no body was recorded (it should be discarded)
+	h, err := recorder.Messages[0].HTML()
+	if err == nil {
+		if len(h) != 0 {
+			t.Errorf("Expected empty body, got: %v", string(h))
+		}
+	}
+
+	// Verify that headers were still recorded correctly
+	if recorder.Messages[0].From.Address != "sender@example.org" {
+		t.Errorf("Expected From header to be sender@example.org, got: %v", recorder.Messages[0].From.Address)
+	}
+
+	if len(recorder.Messages[0].To) != 1 || recorder.Messages[0].To[0].Address != "recipient@example.net" {
+		t.Errorf("Expected recipient header to be recipient@example.net, got: %v", recorder.Messages[0].To[0].Address)
+	}
 }

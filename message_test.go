@@ -97,7 +97,7 @@ Content-Disposition: attachment; filename="invite.ics"
 QkVHSU46VkNBTEVOREFSClZFUlNJT046Mi4wClBST0RJRDotLy9tYWlscHJvdG8vL01haWxQcm90bwpDQUxTQ0FMRTpHUkVHT1JJQU4KQkVHSU46VkVWRU5UCkRUU1RBTVA6MjAxNzAxMTZUMTU0MDAwClVJRDpteWNvb2xldmVudEBtYWlscHJvdG8KCkRUU1RBUlQ7VFpJRD0iQW1lcmljYS9OZXdfWW9yayI6MjAxNzAxMThUMTEwMDAwCkRURU5EO1RaSUQ9IkFtZXJpY2EvTmV3X1lvcmsiOjIwMTcwMTE4VDEyMDAwMApTVU1NQVJZOlNlbmQgYW4gZW1haWwKTE9DQVRJT046VGVzdApFTkQ6VkVWRU5UCkVORDpWQ0FMRU5EQVI=
 --_=test=_bbd1e98aa6c34ef59d8d102a0e795027--`
 
-	utf8EncodedFromName = `From: Sender \u0014\<sender@example.com>
+	utf8EncodedFromName = `From: Sender 🍃 <sender@example.com>
 Date: Mon, 16 Jan 2017 16:59:33 -0500
 Subject: Multipart Message
 MIME-Version: 1.0
@@ -492,7 +492,7 @@ func TestUTFEncodingInFromName(t *testing.T) {
 
 	expectFrom := []mail.Address{
 		{
-			Name:    "Sender \\u0014\\",
+			Name:    "Sender 🍃",
 			Address: "sender@example.com",
 		},
 	}

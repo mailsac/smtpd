@@ -83,6 +83,9 @@ type Server struct {
 	Ready chan bool
 
 	PreAuthVerbsAllowed []string
+
+	// DiscardBody will read all message body text and discard it
+	DiscardBody bool
 }
 
 // NewServer creates a server with the default settings
@@ -229,8 +232,9 @@ func (s *Server) ListenAndServe(addr string) error {
 			ReadTimeout:  s.ReadTimeout,
 			WriteTimeout: s.WriteTimeout,
 
-			Logger: s.Logger,
-			server: s,
+			Logger:      s.Logger,
+			server:      s,
+			DiscardBody: s.DiscardBody,
 		}
 
 		c.SetReadDeadline(time.Now().Add(s.ReadTimeout))

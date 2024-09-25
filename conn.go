@@ -86,6 +86,8 @@ type Conn struct {
 	server *Server
 
 	limitedReader *LimitedReader
+
+	DiscardBody bool
 }
 
 // AddInfoHeader adds an additional header to the beginning of the list, such that the newest
@@ -176,8 +178,46 @@ func (c *Conn) ReadLine() (string, error) {
 // ReadData brokers the special case of SMTP data messages
 func (c *Conn) ReadData() (string, error) {
 	c.SetReadDeadline(time.Now().Add(c.ReadTimeout))
+
+	if c.DiscardBody {
+		// Use DotReader to handle the special \r\n.\r\n termination in SMTP
+		reader := c.tp().DotReader()
+		// Step 1: Read headers first and keep them intact
+		headers := make([]byte, 4096)
+		n, err := reader.Read(headers)
+		if err != nil && err != io.EOF {
+			return "", err
+		}
+
+		// Convert headers to string
+		headerString := string(headers[:n])
+
+		// Step 2: Discard the message body
+		buf := make([]byte, 4096)
+		for {
+			n, err := reader.Read(buf)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				return "", err
+			}
+			if n == 0 {
+				break
+			}
+		}
+
+		// Return only the headers, indicating that the body has been discarded
+		return headerString, nil
+	}
+
+	// If DiscardBody is not enabled, read and return the full message content
 	lines, err := c.tp().ReadDotLines()
-	return strings.Join(lines, "\n"), err
+	if err != nil {
+		return "", err
+	}
+
+	return strings.Join(lines, "\n"), nil
 }
 
 // WriteSMTP writes a general SMTP line
