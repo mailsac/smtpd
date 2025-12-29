@@ -86,6 +86,9 @@ type Server struct {
 
 	// DiscardBody will read all message body text and discard it
 	DiscardBody bool
+
+	// Maintenance Mode property allows for custom handling of the server in maintenance mode
+	MaintenanceMode bool
 }
 
 // NewServer creates a server with the default settings
